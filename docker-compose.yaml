@@ -1,0 +1,21 @@
+version: '3'
+services:
+  server:
+    build: ./server
+    volumes:
+      - './server:/usr/local/src/skiff/app/server'
+    ports:
+      - '8000:8000'
+    stdin_open: true
+    tty: true
+  ui:
+    build: ./ui
+    volumes:
+      - './ui:/usr/local/src/skiff/app/ui'
+      - 'node_modules:/usr/local/src/skiff/app/ui/node_modules'
+    ports:
+      - '3000:3000'
+    stdin_open: true
+    tty: true
+volumes:
+  node_modules:

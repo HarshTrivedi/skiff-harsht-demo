@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+# NOTE: We don't assert what python version is being used, so write simple
+# code that runs in both python 2.7 and python 3+. If this becomes untenable
+# we can enforce a particular version of python.
+
+# TODO: This command should eventually be a part of the skiff CLI. For now
+# it's local, as the CLI doesn't yet exist.
+
+from argparse import ArgumentParser
+from os import system
+from subprocess import check_output
+from re import compile
+
+def start_shell():
+    """
+    Starts a shell session in the target container.
+    """
+
+    # We don't ask the user to specify the actual container name, but instead
+    # ask for a simple identifier for convenience.
+    targets = [ 'server', 'ui' ]
+
+    arg_parser = ArgumentParser(
+            usage='A utility that opens a shell session in the specified web application container.')
+    arg_parser.add_argument('target', type=str,
+            help='The target container',
+            choices=list(targets))
+    args = arg_parser.parse_args()
+
+    # We list the running images, and find the one with a suffix equal to the
+    # specified target. This allows end users to change the `name` member of
+    # their docker-compose without breaking this
+    lines = check_output('docker-compose images', shell=True).split('\n')[2:]
+    container_name = None
+    for line in lines:
+        parts = compile(r'\s{2,}').split(line)
+        if len(parts) > 1:
+            image_name = parts[1]
+            if image_name.endswith('_%s' % args.target):
+                container_name = parts[0]
+
+    if container_name is None:
+        raise RuntimeError('Couldn\'t find the target container. Are you sure it\'s running?')
+
+    # Using system instead of subprocess ensures that the shell session inherits
+    # the user's current one.
+    system('docker exec --user root -it %s /bin/sh' % container_name)
+
+if __name__ == '__main__':
+    start_shell()
